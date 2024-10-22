@@ -12,7 +12,7 @@ import { OKRList } from "@/components/OKRList";
 import { Company } from "@/models/Company";
 import { OKR } from "@/models/OKR";
 import { CompanyCard } from "@/components/CompanyCard";
-import { Models } from "appwrite";
+import { AppwriteException, Models } from "appwrite";
 
 // Mock data for demonstration
 const mockCompany: Company = {
@@ -33,13 +33,11 @@ const mockOKRs: OKR[] = [
     progress: 75,
     userId: "1",
     user: {
-      id: "1",
+      $id: "1",
       name: "John Doe",
       email: "john@acme.com",
       company: mockCompany,
       companyId: "1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
     },
     companyId: "1",
     company: mockCompany,
@@ -47,14 +45,13 @@ const mockOKRs: OKR[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
   },
-  // Add more mock OKRs as needed
 ];
 
 export default function Dashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<Models.User<Models.Preferences>>();
-  const [objectives, setObjectives] = useState([]);
+  const [objectives, setObjectives] = useState<Models.Document[]>([]);
   const [newObjective, setNewObjective] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -84,7 +81,7 @@ export default function Dashboard() {
     } catch (error) {
       toast({
         title: "Error fetching objectives",
-        description: error.message,
+        description: (error as AppwriteException).message,
         variant: "destructive",
       });
     }
@@ -97,7 +94,7 @@ export default function Dashboard() {
         "YOUR_DATABASE_ID",
         "YOUR_COLLECTION_ID",
         "unique()",
-        { title: newObjective, userId: user.$id }
+        { title: newObjective, userId: user?.$id }
       );
       setNewObjective("");
       fetchObjectives();
@@ -108,7 +105,7 @@ export default function Dashboard() {
     } catch (error) {
       toast({
         title: "Error adding objective",
-        description: error.message,
+        description: (error as AppwriteException).message,
         variant: "destructive",
       });
     }
@@ -121,7 +118,7 @@ export default function Dashboard() {
     } catch (error) {
       toast({
         title: "Error logging out",
-        description: error.message,
+        description: (error as AppwriteException).message,
         variant: "destructive",
       });
     }
@@ -137,10 +134,6 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Welcome, {user?.name}</h1>
-        <Button onClick={handleLogout}>Logout</Button>
-      </div>
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-8">Company OKR Dashboard</h1>
         <CompanyCard company={mockCompany} />
