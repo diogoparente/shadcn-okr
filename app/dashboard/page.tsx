@@ -1,20 +1,61 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { account, databases } from '@/lib/appwrite';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { account, databases } from "@/lib/appwrite";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Plus, Trash2 } from "lucide-react";
+
+import { OKRList } from "@/components/OKRList";
+import { Company } from "@/models/Company";
+import { OKR } from "@/models/OKR";
+import { CompanyCard } from "@/components/CompanyCard";
+import { Models } from "appwrite";
+
+// Mock data for demonstration
+const mockCompany: Company = {
+  id: "1",
+  name: "Acme Inc.",
+  description: "A leading technology company",
+  users: [],
+  okrs: [],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const mockOKRs: OKR[] = [
+  {
+    id: "1",
+    title: "Increase Revenue",
+    description: "Boost company revenue by 20%",
+    progress: 75,
+    userId: "1",
+    user: {
+      id: "1",
+      name: "John Doe",
+      email: "john@acme.com",
+      company: mockCompany,
+      companyId: "1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    companyId: "1",
+    company: mockCompany,
+    children: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  // Add more mock OKRs as needed
+];
 
 export default function Dashboard() {
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<Models.User<Models.Preferences>>();
   const [objectives, setObjectives] = useState([]);
-  const [newObjective, setNewObjective] = useState('');
+  const [newObjective, setNewObjective] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +65,7 @@ export default function Dashboard() {
         setUser(session);
         fetchObjectives();
       } catch (error) {
-        router.push('/login');
+        router.push("/login");
       } finally {
         setIsLoading(false);
       }
@@ -36,8 +77,8 @@ export default function Dashboard() {
   const fetchObjectives = async () => {
     try {
       const response = await databases.listDocuments(
-        'YOUR_DATABASE_ID',
-        'YOUR_COLLECTION_ID'
+        "YOUR_DATABASE_ID",
+        "YOUR_COLLECTION_ID"
       );
       setObjectives(response.documents);
     } catch (error) {
@@ -53,12 +94,12 @@ export default function Dashboard() {
     if (!newObjective.trim()) return;
     try {
       await databases.createDocument(
-        'YOUR_DATABASE_ID',
-        'YOUR_COLLECTION_ID',
-        'unique()',
+        "YOUR_DATABASE_ID",
+        "YOUR_COLLECTION_ID",
+        "unique()",
         { title: newObjective, userId: user.$id }
       );
-      setNewObjective('');
+      setNewObjective("");
       fetchObjectives();
       toast({
         title: "Objective added",
@@ -73,27 +114,10 @@ export default function Dashboard() {
     }
   };
 
-  const deleteObjective = async (id) => {
-    try {
-      await databases.deleteDocument('YOUR_DATABASE_ID', 'YOUR_COLLECTION_ID', id);
-      fetchObjectives();
-      toast({
-        title: "Objective deleted",
-        description: "The objective has been deleted successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error deleting objective",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleLogout = async () => {
     try {
-      await account.deleteSession('current');
-      router.push('/');
+      await account.deleteSession("current");
+      router.push("/");
     } catch (error) {
       toast({
         title: "Error logging out",
@@ -118,40 +142,28 @@ export default function Dashboard() {
         <Button onClick={handleLogout}>Logout</Button>
       </div>
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Add New Objective</h2>
-        <div className="flex space-x-2">
-          <Input
-            type="text"
-            value={newObjective}
-            onChange={(e) => setNewObjective(e.target.value)}
-            placeholder="Enter your objective"
-            className="flex-grow"
-          />
-          <Button onClick={addObjective}>
-            <Plus className="w-4 h-4 mr-2" /> Add
-          </Button>
+        <h1 className="text-4xl font-bold mb-8">Company OKR Dashboard</h1>
+        <CompanyCard company={mockCompany} />
+
+        <div className="py-8">
+          <h2 className="text-2xl font-semibold mb-4">Add New Objective</h2>
+          <div className="flex space-x-2">
+            <Input
+              type="text"
+              value={newObjective}
+              onChange={(e) => setNewObjective(e.target.value)}
+              placeholder="Enter your objective"
+              className="flex-grow"
+            />
+            <Button onClick={addObjective}>
+              <Plus className="w-4 h-4 mr-2" /> Add
+            </Button>
+          </div>
+          <div className="mt-8">
+            <h2 className="text-2xl font-semibold mb-4">Company OKRs</h2>
+            <OKRList okrs={mockOKRs} />
+          </div>
         </div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {objectives.map((objective) => (
-          <Card key={objective.$id}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {objective.title}
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => deleteObjective(objective.$id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {/* Add key results here */}
-            </CardContent>
-          </Card>
-        ))}
       </div>
     </div>
   );
